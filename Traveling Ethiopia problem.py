@@ -1,9 +1,127 @@
+import heapq
+from collections import deque
 import networkx as nx
 import matplotlib.pyplot as plt
-from collections import deque
-import heapq
 
-# Input data
+def uninformed_path_finder(cities, roads, start_city, goal_city, strategy):
+    """
+    Parameters:
+    - cities: List of city names.
+    - roads: Dictionary with city connections as {city: [(connected_city, distance)]}.
+    - start_city: The city to start the journey.
+    - goal_city: The destination city.
+    - strategy: The uninformed search strategy to use ('bfs', 'dfs', 'ucs').
+    
+    Returns:
+    - path: List of cities representing the path from start_city to goal_city.
+    - cost: Total cost (number of steps or distance) of the path.
+    """
+    if strategy == "bfs":
+        return bfs(roads, start_city, goal_city)
+    elif strategy == "dfs":
+        return dfs(roads, start_city, goal_city)
+    elif strategy == "ucs":
+        return ucs(roads, start_city, goal_city)
+    else:
+        raise ValueError("Invalid strategy! Choose 'bfs', 'dfs', or 'ucs'.")
+
+def bfs(roads, start, goal):
+    queue = deque([(start, [start], 0)])  # (current_city, path, cost)
+    visited = set()
+    
+    while queue:
+        current, path, cost = queue.popleft()
+        if current == goal:
+            return path, cost
+        if current not in visited:
+            visited.add(current)
+            for neighbor, distance in roads[current]:
+                if neighbor not in visited:
+                    queue.append((neighbor, path + [neighbor], cost + 1))
+    return None, float("inf")
+
+def dfs(roads, start, goal):
+    stack = [(start, [start], 0)]  # (current_city, path, cost)
+    visited = set()
+    
+    while stack:
+        current, path, cost = stack.pop()
+        if current == goal:
+            return path, cost
+        if current not in visited:
+            visited.add(current)
+            for neighbor, distance in roads[current]:
+                if neighbor not in visited:
+                    stack.append((neighbor, path + [neighbor], cost + 1))
+    return None, float("inf")
+
+def ucs(roads, start, goal):
+    priority_queue = [(0, start, [start])]  # (cumulative_cost, current_city, path)
+    visited = set()
+    
+    while priority_queue:
+        cost, current, path = heapq.heappop(priority_queue)
+        if current == goal:
+            return path, cost
+        if current not in visited:
+            visited.add(current)
+            for neighbor, distance in roads[current]:
+                if neighbor not in visited:
+                    heapq.heappush(priority_queue, (cost + distance, neighbor, path + [neighbor]))
+    return None, float("inf")
+
+def traverse_all_cities(cities, roads, start_city, strategy):
+    """
+    Parameters:
+    - cities: List of city names.
+    - roads: Dictionary with city connections.
+    - start_city: The starting city.
+    - strategy: The uninformed search strategy to use ('bfs' or 'dfs').
+    
+    Returns:
+    - path: List of cities visited in order.
+    - cost: Total traversal cost.
+    """
+    visited = set()
+    path = []
+    cost = 0
+    
+    def visit(city, current_cost):
+        nonlocal path, cost
+        visited.add(city)
+        path.append(city)
+        cost += current_cost
+
+    def backtrack(city):
+        for neighbor, distance in roads[city]:
+            if neighbor not in visited:
+                visit(neighbor, distance)
+                backtrack(neighbor)
+    
+    visit(start_city, 0)
+    backtrack(start_city)
+    return path, cost
+
+# Visualization
+def visualize_graph(cities, roads, path=None):
+    G = nx.Graph()
+    for city in cities:
+        G.add_node(city)
+    for city, neighbors in roads.items():
+        for neighbor, distance in neighbors:
+            G.add_edge(city, neighbor, weight=distance)
+
+    pos = nx.spring_layout(G)
+    nx.draw(G, pos, with_labels=True, node_color="lightblue", node_size=2000, font_size=10, font_weight="bold")
+    labels = nx.get_edge_attributes(G, "weight")
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+
+    if path:
+        path_edges = [(path[i], path[i + 1]) for i in range(len(path) - 1)]
+        nx.draw_networkx_edges(G, pos, edgelist=path_edges, edge_color="red", width=2)
+    plt.show()
+
+# Example
 cities = ['Addis Ababa', 'Bahir Dar', 'Gondar', 'Hawassa', 'Mekelle']
 roads = {
     'Addis Ababa': [('Bahir Dar', 510), ('Hawassa', 275)],
@@ -13,69 +131,11 @@ roads = {
     'Mekelle': [('Gondar', 300)]
 }
 
-# Create graph
-def create_graph(cities, roads):
-    graph = {}
-    for city in cities:
-        graph[city] = roads.get(city, [])
-    return graph
+# Example Runs
+start_city = "Addis Ababa"
+goal_city = "Mekelle"
+print("BFS:", uninformed_path_finder(cities, roads, start_city, goal_city, "bfs"))
+print("DFS:", uninformed_path_finder(cities, roads, start_city, goal_city, "dfs"))
+print("UCS:", uninformed_path_finder(cities, roads, start_city, goal_city, "ucs"))
 
-graph = create_graph(cities, roads)
-
-# Weighted BFS (using priority queue)
-def weighted_bfs(graph, start_city, goal_city):
-    """
-    Parameters:
-    - graph: Dictionary representing the adjacency list with weights.
-    - start_city: The city to start the search.
-    - goal_city: The target city to reach.
-
-    Returns:
-    - path: List of cities representing the shortest path (by distance) from start_city to goal_city.
-    - cost: Total cost (distance) of the path.
-    """
-    visited = set()
-    pq = [(0, start_city, [start_city])]  # Priority queue: (cost, city, path)
-    
-    while pq:
-        current_cost, current_city, path = heapq.heappop(pq)
-        
-        if current_city == goal_city:
-            return path, current_cost  # Return path and total cost
-        
-        if current_city not in visited:
-            visited.add(current_city)
-            for neighbor, cost in graph[current_city]:
-                if neighbor not in visited:
-                    heapq.heappush(pq, (current_cost + cost, neighbor, path + [neighbor]))
-    
-    return None, float('inf')  # Return None if no path is found
-
-# Visualization
-def visualize_graph(graph):
-    """
-    Visualizes the graph using NetworkX and Matplotlib.
-    """
-    G = nx.Graph()
-    
-    # Add edges and nodes
-    for city, neighbors in graph.items():
-        for neighbor, distance in neighbors:
-            G.add_edge(city, neighbor, weight=distance)
-    
-    # Draw the graph
-    pos = nx.spring_layout(G)  # Positioning the nodes
-    nx.draw(G, pos, with_labels=True, node_size=700, node_color="lightblue", font_weight="bold")
-    labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
-    
-    plt.title("Road Network of Ethiopian Cities")
-    plt.show()
-
-# Test weighted BFS
-weighted_path, weighted_cost = weighted_bfs(graph, "Addis Ababa", "Mekelle")
-print("Weighted BFS Path:", weighted_path)
-print("Weighted BFS Cost:", weighted_cost)
-
-# Visualize the graph
-visualize_graph(graph)
+visualize_graph(cities, roads, ['Addis Ababa', 'Bahir Dar', 'Gondar', 'Mekelle'])
