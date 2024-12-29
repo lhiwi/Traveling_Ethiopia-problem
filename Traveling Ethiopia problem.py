@@ -4,18 +4,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 def uninformed_path_finder(cities, roads, start_city, goal_city, strategy):
-    """
-    Parameters:
-    - cities: List of city names.
-    - roads: Dictionary with city connections as {city: [(connected_city, distance)]}.
-    - start_city: The city to start the journey.
-    - goal_city: The destination city.
-    - strategy: The uninformed search strategy to use ('bfs', 'dfs', 'ucs').
-    
-    Returns:
-    - path: List of cities representing the path from start_city to goal_city.
-    - cost: Total cost (number of steps or distance) of the path.
-    """
+ 
     if strategy == "bfs":
         return bfs(roads, start_city, goal_city)
     elif strategy == "dfs":
@@ -71,17 +60,6 @@ def ucs(roads, start, goal):
     return None, float("inf")
 
 def traverse_all_cities(cities, roads, start_city, strategy):
-    """
-    Parameters:
-    - cities: List of city names.
-    - roads: Dictionary with city connections.
-    - start_city: The starting city.
-    - strategy: The uninformed search strategy to use ('bfs' or 'dfs').
-    
-    Returns:
-    - path: List of cities visited in order.
-    - cost: Total traversal cost.
-    """
     visited = set()
     path = []
     cost = 0
